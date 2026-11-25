@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b6b63">
+  <meta name="color-scheme" content="light dark">
+  <title>APP NAFTA 3.0</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header class="app-header">
+  <h1>⛽ APP NAFTA <small>3.0</small></h1>
+  <span id="sync-badge" class="sync-badge hidden" aria-live="polite"></span>
+</header>
+
+<main>
+
+  <!-- ============ INICIO ============ -->
+  <section id="view-inicio" class="view">
+    <div id="maint-banner" class="alert warn banner hidden"></div>
+    <div id="dash-vehicle" class="chips-select dash-chips" role="radiogroup" aria-label="Vehículo"></div>
+    <div id="dash-cards" class="cards"></div>
+
+    <div id="seed-card" class="card empty hidden">
+      <p><strong>Empecemos</strong></p>
+      <p class="muted">Agregá tus vehículos, o cargá los tres autos y las once cargas históricas que ya tenías.</p>
+      <div class="row wrap" style="justify-content:center">
+        <button type="button" class="btn primary" data-action="load-seed">Cargar mis 3 autos y 11 cargas</button>
+        <button type="button" class="btn" data-view="vehiculos">Agregar vehículo</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Próximos mantenimientos</h2><button type="button" class="btn text" data-view="mantenimiento">Ver todo</button></div>
+      <div id="dash-alerts"></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Últimas cargas</h2><button type="button" class="btn text" data-view="historial">Ver todas</button></div>
+      <div id="dash-fills"></div>
+    </div>
+  </section>
+
+  <!-- ============ CARGAR ============ -->
+  <section id="view-cargar" class="view">
+    <div id="saved-result" class="card result hidden" aria-live="polite"></div>
+
+    <div id="no-vehicles" class="card empty hidden">
+      <p><strong>Todavía no hay vehículos.</strong></p>
+      <p>Agregá al menos un auto para empezar a registrar cargas.</p>
+      <button type="button" class="btn primary" data-view="vehiculos">Agregar vehículo</button>
+    </div>
+
+    <form id="fill-form" class="card" novalidate autocomplete="off">
+      <div class="card-head">
+        <h2 id="form-title">Nueva carga</h2>
+        <button type="button" id="btn-cancel-edit" class="btn text hidden">Cancelar edición</button>
+      </div>
+
+      <div class="field-block">
+        <span class="lbl">Vehículo</span>
+        <div id="chips-vehicle" class="chips-select" role="radiogroup" aria-label="Vehículo"></div>
+        <select id="f-vehicle" class="sr-only" tabindex="-1" aria-hidden="true" required></select>
+      </div>
+
+      <div class="big-grid">
+        <label class="big-field">
+          <span id="l-qty">Litros</span>
+          <input type="number" id="f-qty" class="big" step="any" min="0" inputmode="decimal" placeholder="0,00">
+        </label>
+        <label class="big-field">
+          <span>Total $</span>
+          <input type="number" id="f-total" class="big" step="any" min="0" inputmode="decimal" placeholder="0">
+        </label>
+      </div>
+
+      <label class="big-field wide">
+        <span>Kilometraje (odómetro)</span>
+        <input type="number" id="f-odo" class="big" step="1" min="0" inputmode="numeric" placeholder="0">
+        <small id="odo-hint" class="hint"></small>
+      </label>
+      <div id="odo-warning" class="alert warn hidden" role="alert"></div>
+
+      <div class="price-row">
+        <label class="big-field">
+          <span id="l-price">Precio por litro ($)</span>
+          <input type="number" id="f-price" step="any" min="0" inputmode="decimal" placeholder="Se calcula solo">
+          <small id="price-hint" class="hint"></small>
+        </label>
+      </div>
+
+      <div class="field-block" id="driver-block">
+        <span class="lbl">Quién cargó</span>
+        <div id="chips-driver" class="chips-select" role="radiogroup" aria-label="Conductor"></div>
+        <select id="f-driver" class="sr-only" tabindex="-1" aria-hidden="true"></select>
+      </div>
+
+      <label class="switch-row">
+        <span>Tanque lleno<small>Necesario para calcular el rendimiento</small></span>
+        <input type="checkbox" id="f-full" checked>
+      </label>
+
+      <details class="more">
+        <summary>Más datos: fecha, pago, combustible, nota</summary>
+        <div class="grid">
+          <label class="field"><span>Fecha</span><input type="date" id="f-date" required></label>
+          <label class="field"><span>Combustible</span><select id="f-fuel"></select></label>
+          <label class="field"><span>Pagó (si no fue quien cargó)</span><select id="f-payer"></select></label>
+          <label class="field"><span>Medio de pago</span><select id="f-method"></select></label>
+        </div>
+        <label class="field">
+          <span>Estación de servicio / nota</span>
+          <input type="text" id="f-note" maxlength="120" placeholder="Ej: YPF Av. Pellegrini">
+        </label>
+      </details>
+
+      <div class="sticky-save">
+        <button type="submit" id="btn-save-fill" class="btn primary big">Guardar carga</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- ============ GASTOS ============ -->
+  <section id="view-gastos" class="view">
+    <div id="x-empty" class="card empty hidden">
+      <p><strong>Primero agregá un vehículo.</strong></p>
+      <button type="button" class="btn primary" data-view="vehiculos">Agregar vehículo</button>
+    </div>
+
+    <form id="expense-form" class="card" novalidate autocomplete="off">
+      <div class="card-head">
+        <h2 id="x-title">Nuevo gasto</h2>
+        <button type="button" id="btn-x-cancel" class="btn text hidden">Cancelar edición</button>
+      </div>
+      <p class="muted small">Reparaciones, repuestos, neumáticos, lavadero, patente, seguro, VTV, peajes… El combustible se carga en "Cargar" y los servicios con costo de "Mant." ya se suman solos.</p>
+
+      <div class="field-block">
+        <span class="lbl">Vehículo</span>
+        <div id="chips-x-vehicle" class="chips-select" role="radiogroup" aria-label="Vehículo"></div>
+        <select id="x-vehicle" class="sr-only" tabindex="-1" aria-hidden="true"></select>
+      </div>
+      <div class="big-grid">
+        <label class="big-field"><span>Monto $</span><input type="number" id="x-amount" class="big" step="any" min="0" inputmode="decimal" placeholder="0"></label>
+        <label class="big-field"><span>Categoría</span><select id="x-category" class="mid-select"></select></label>
+      </div>
+      <div class="field-block" id="x-payer-block">
+        <span class="lbl">Quién pagó</span>
+        <div id="chips-x-payer" class="chips-select" role="radiogroup" aria-label="Quién pagó"></div>
+        <select id="x-payer" class="sr-only" tabindex="-1" aria-hidden="true"></select>
+      </div>
+      <details class="more">
+        <summary>Más datos: fecha, medio de pago, nota</summary>
+        <div class="grid">
+          <label class="field"><span>Fecha</span><input type="date" id="x-date"></label>
+          <label class="field"><span>Medio de pago</span><select id="x-method"></select></label>
+        </div>
+        <label class="field"><span>Nota</span><input type="text" id="x-note" maxlength="160" placeholder="Ej: cambio de pastillas, taller López"></label>
+      </details>
+      <div class="sticky-save"><button type="submit" id="btn-save-expense" class="btn primary big">Guardar gasto</button></div>
+    </form>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Gastos <small id="x-count"></small></h2>
+        <select id="x-flt-vehicle" class="inline-select" aria-label="Filtrar por vehículo"></select>
+      </div>
+      <div id="x-total" class="muted small"></div>
+      <div id="x-list"></div>
+    </div>
+  </section>
+
+  <!-- ============ MANTENIMIENTO ============ -->
+  <section id="view-mantenimiento" class="view">
+    <div class="card">
+      <div class="card-head"><h2>Alertas</h2></div>
+      <div id="maint-alerts"></div>
+    </div>
+
+    <form id="maint-form" class="card" novalidate autocomplete="off">
+      <div class="card-head">
+        <h2 id="maint-form-title">Registrar mantenimiento</h2>
+        <button type="button" id="btn-maint-cancel" class="btn text hidden">Cancelar edición</button>
+      </div>
+      <div class="grid">
+        <label class="field"><span>Vehículo</span><select id="m-vehicle"></select></label>
+        <label class="field"><span>Tipo</span><select id="m-type"></select></label>
+        <label class="field"><span>Fecha del servicio</span><input type="date" id="m-date"></label>
+        <label class="field">
+          <span>Kilometraje (opcional)</span>
+          <input type="number" id="m-odo" step="1" min="0" inputmode="numeric" placeholder="0">
+          <small id="m-km-hint" class="hint"></small>
+        </label>
+        <label class="field">
+          <span>Costo $ (opcional)</span>
+          <input type="number" id="m-cost" step="any" min="0" inputmode="decimal" placeholder="0,00">
+          <small class="hint">Se suma a los gastos del vehículo</small>
+        </label>
+        <label class="field"><span>Pagó</span><select id="m-payer"></select></label>
+      </div>
+
+      <fieldset class="fieldset">
+        <legend>Próximo vencimiento</legend>
+        <p class="muted small">Completá fecha, km o ambos. Se sugieren según el tipo y podés cambiarlos.</p>
+        <div class="grid">
+          <label class="field"><span>Repetir cada (km)</span><input type="number" id="m-int-km" step="1" min="0" inputmode="numeric" placeholder="10000"></label>
+          <label class="field"><span>Repetir cada (meses)</span><input type="number" id="m-int-months" step="1" min="0" inputmode="numeric" placeholder="12"></label>
+          <label class="field"><span>Vence el (fecha)</span><input type="date" id="m-next-date"></label>
+          <label class="field"><span>Vence a los (km)</span><input type="number" id="m-next-km" step="1" min="0" inputmode="numeric" placeholder="0"></label>
+        </div>
+      </fieldset>
+
+      <label class="field">
+        <span>Nota (opcional)</span>
+        <input type="text" id="m-note" maxlength="160" placeholder="Ej: aceite 5W30 sintético, taller López">
+      </label>
+      <button type="submit" id="btn-save-maint" class="btn primary big">Guardar mantenimiento</button>
+    </form>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Historial</h2>
+        <select id="m-flt-vehicle" class="inline-select" aria-label="Filtrar por vehículo"></select>
+      </div>
+      <div id="maint-history"></div>
+    </div>
+  </section>
+
+  <!-- ============ MÁS ============ -->
+  <section id="view-mas" class="view">
+    <div class="menu">
+      <button type="button" class="menu-item" data-view="historial"><span class="ico">🧾</span><span><strong>Cargas</strong><small>Historial de combustible, filtros y CSV</small></span></button>
+      <button type="button" class="menu-item" data-view="vehiculos"><span class="ico">🚗</span><span><strong>Vehículos</strong><small>Fichas, gastos y consumo de cada auto</small></span></button>
+      <button type="button" class="menu-item" data-view="estadisticas"><span class="ico">📈</span><span><strong>Estadísticas</strong><small>Gastos, precios, rendimiento y costo por km</small></span></button>
+      <button type="button" class="menu-item" data-view="familia"><span class="ico">👨‍👩‍👧</span><span><strong>Familia</strong><small>Integrantes, aportes y actividad</small></span></button>
+      <button type="button" class="menu-item" data-view="ajustes"><span class="ico">⚙️</span><span><strong>Ajustes</strong><small>Cuenta, sincronización y respaldo</small></span></button>
+    </div>
+  </section>
+
+  <!-- ============ HISTORIAL DE CARGAS ============ -->
+  <section id="view-historial" class="view">
+    <button type="button" class="btn text back" data-view="mas">← Más</button>
+    <div class="card">
+      <div class="card-head">
+        <h2>Filtros</h2>
+        <button type="button" id="btn-clear-filters" class="btn text">Limpiar</button>
+      </div>
+      <div class="grid filters">
+        <label class="field"><span>Vehículo</span><select id="flt-vehicle"></select></label>
+        <label class="field"><span>Conductor</span><select id="flt-driver"></select></label>
+        <label class="field"><span>Año</span><select id="flt-year"></select></label>
+        <label class="field"><span>Mes</span><select id="flt-month"></select></label>
+      </div>
+    </div>
+
+    <div id="summary-cards" class="cards"></div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Historial <small id="history-count"></small></h2>
+        <button type="button" id="btn-csv" class="btn">⬇ CSV</button>
+      </div>
+      <div id="history"></div>
+    </div>
+  </section>
+
+  <!-- ============ VEHÍCULOS ============ -->
+  <section id="view-vehiculos" class="view">
+    <button type="button" class="btn text back" data-view="mas">← Más</button>
+    <div class="card">
+      <details class="more" id="vehicle-details">
+        <summary id="vehicle-form-title">Agregar vehículo</summary>
+        <form id="vehicle-form" novalidate autocomplete="off">
+          <div class="grid">
+            <label class="field"><span>Nombre / apodo</span><input type="text" id="v-name" maxlength="40" placeholder="Ej: El Gol de papá"></label>
+            <label class="field"><span>Patente</span><input type="text" id="v-plate" maxlength="10" placeholder="AB123CD" style="text-transform:uppercase"></label>
+            <label class="field"><span>Modelo</span><input type="text" id="v-model" maxlength="40" placeholder="Ej: VW Gol Trend 1.6"></label>
+            <label class="field"><span>Combustible habitual</span><select id="v-fuel"></select></label>
+            <label class="field"><span>Capacidad del tanque (L)</span><input type="number" id="v-tank" step="any" min="0" inputmode="decimal" placeholder="50"></label>
+          </div>
+          <div class="row">
+            <button type="submit" id="btn-save-vehicle" class="btn primary">Agregar vehículo</button>
+            <button type="button" id="btn-v-cancel" class="btn text hidden">Cancelar</button>
+          </div>
+        </form>
+      </details>
+    </div>
+    <div id="vehicle-fichas"></div>
+  </section>
+
+  <!-- ============ ESTADÍSTICAS ============ -->
+  <section id="view-estadisticas" class="view">
+    <button type="button" class="btn text back" data-view="mas">← Más</button>
+    <div class="card">
+      <div class="grid filters">
+        <label class="field"><span>Vehículo</span><select id="st-vehicle"></select></label>
+        <label class="field"><span>Período</span>
+          <select id="st-period">
+            <option value="3">Últimos 3 meses</option><option value="6">Últimos 6 meses</option>
+            <option value="12" selected>Últimos 12 meses</option><option value="all">Todo</option>
+          </select>
+        </label>
+      </div>
+    </div>
+    <div class="charts">
+      <div class="card"><div class="card-head"><h2>Gasto mensual por vehículo</h2></div>
+        <p class="muted small chart-note">Combustible + mantenimiento + otros gastos. No depende del filtro de vehículo.</p><div id="st-spend" class="chart"></div></div>
+      <div class="card"><div class="card-head"><h2>Evolución del precio</h2></div>
+        <p class="muted small chart-note">Precio por litro (o m³) en cada carga.</p><div id="st-price" class="chart"></div></div>
+      <div class="card"><div class="card-head"><h2>Rendimiento</h2></div>
+        <p class="muted small chart-note">km por litro entre dos tanques llenos con km válidos.</p><div id="st-eff" class="chart"></div></div>
+      <div class="card"><div class="card-head"><h2>Costo por kilómetro</h2></div>
+        <p class="muted small chart-note">Gasto de combustible ÷ km recorridos, por vehículo.</p><div id="st-cpk" class="chart"></div></div>
+    </div>
+  </section>
+
+  <!-- ============ FAMILIA ============ -->
+  <section id="view-familia" class="view">
+    <button type="button" class="btn text back" data-view="mas">← Más</button>
+
+    <div class="card">
+      <div class="card-head"><h2>Familia en la nube</h2></div>
+      <div id="members-panel"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Integrantes</h2></div>
+      <p class="muted small">Personas que conducen o pagan. Aparecen al cargar combustible y gastos.</p>
+      <form id="driver-form" class="row" novalidate autocomplete="off">
+        <input type="text" id="d-name" maxlength="40" placeholder="Nombre" aria-label="Nombre del integrante">
+        <button type="submit" class="btn primary">Agregar</button>
+      </form>
+      <ul id="driver-list" class="list"></ul>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Gastos por integrante</h2>
+        <select id="contrib-month" class="inline-select" aria-label="Período"></select>
+      </div>
+      <p class="muted small">Cuánto puso cada persona (combustible, mantenimiento y otros gastos), sin importar quién usó el auto.</p>
+      <div id="contrib-list"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Actividad reciente</h2><button type="button" class="btn mini" data-action="load-activity">Ver</button></div>
+      <div id="activity-list"><p class="muted small">Quién agregó, modificó o eliminó registros (requiere cuenta familiar).</p></div>
+    </div>
+  </section>
+
+  <!-- ============ AJUSTES ============ -->
+  <section id="view-ajustes" class="view">
+    <button type="button" class="btn text back" data-view="mas">← Más</button>
+
+    <div class="card">
+      <div class="card-head"><h2>Cuenta y sincronización</h2></div>
+      <div id="account-panel"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Respaldo</h2></div>
+      <p class="muted">Los datos se guardan en este celular y, si activás la cuenta familiar, también en la nube.</p>
+      <div class="row wrap">
+        <button type="button" id="btn-export-json" class="btn primary">⬇ Exportar respaldo (JSON)</button>
+        <label class="btn" for="file-merge">➕ Agregar datos desde archivo</label>
+        <input type="file" id="file-merge" accept="application/json,.json" hidden>
+        <label class="btn" for="file-import">⬆ Importar y reemplazar todo</label>
+        <input type="file" id="file-import" accept="application/json,.json" hidden>
+      </div>
+      <p class="muted small">"Agregar" suma los datos del archivo sin borrar lo que ya tenés. "Reemplazar" borra todo lo actual.</p>
+      <div class="row wrap"><button type="button" class="btn" data-action="load-seed">Cargar datos históricos (3 autos, 11 cargas)</button></div>
+      <hr>
+      <button type="button" id="btn-reset" class="btn danger">Borrar todos los datos</button>
+    </div>
+  </section>
+</main>
+
+<nav class="bottom-nav" aria-label="Navegación principal">
+  <button type="button" data-view="inicio"><span class="ico">🏠</span>Inicio</button>
+  <button type="button" data-view="cargar"><span class="ico">⛽</span>Cargar</button>
+  <button type="button" data-view="gastos"><span class="ico">💸</span>Gastos</button>
+  <button type="button" data-view="mantenimiento"><span class="ico">🔧</span>Mant.<i id="maint-badge" class="nav-badge hidden">0</i></button>
+  <button type="button" data-view="mas"><span class="ico">☰</span>Más</button>
+</nav>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/seed.js"></script>
+<script src="js/store.js"></script>
+<script src="js/calc.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/sync.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/maint.js"></script>
+<script src="js/expenses.js"></script>
+<script src="js/vehicles.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/stats.js"></script>
+<script src="js/family.js"></script>
+<script src="js/account.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
